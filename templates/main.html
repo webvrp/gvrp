@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<title>GVRP on web</title>
+<head>  
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Leaflet  CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
+     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+
+    <!-- java script -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+
+     <!-- Make sure you put this AFTER Leaflet's CSS -->
+    <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+</head>
+<body>
+        <div class="form-group">
+           &nbsp;&nbsp; <label for="scoord">Click on the map or Search for the address to input data </label> <br>
+
+    
+     
+           &nbsp;&nbsp;&nbsp;&nbsp; Before you start using the program empty the database so that the results you get are for your input data without including the existing data on the database.<br>
+           &nbsp;&nbsp;&nbsp;&nbsp; The program can solve single depot problems only. Hence  <strong> do not input more than one depot.</strong><br>
+           &nbsp;&nbsp;&nbsp;&nbsp; <strong>The program is designed for single-user use only. </strong>
+        <form action="{{ url_for('emptydb') }}">
+        &nbsp;&nbsp;&nbsp;&nbsp;  <button id="clear" class="btn btn-default clearButton">Empty the database</button>  &nbsp;&nbsp;&nbsp;&nbsp; 
+
+        </div>
+        </form>
+    <div id="mapid" style=" max-width: 1000px;
+                            height: 600px;
+                            "></div>
+
+    <script type="text/javascript">
+        function chunkArray(myArray, chunk_size){
+            var index = 0;
+            var arrayLength = myArray.length;
+            var tempArray = [];
+            
+            for (index = 0; index < arrayLength; index += chunk_size) {
+                myChunk = myArray.slice(index, index+chunk_size);
+                // Do something if you want with the group
+                tempArray.push(myChunk);
+            }
+
+            return tempArray;
+        }
+        var str = '{{ formdata }}';
+        if (str){
+            var spl = str.split(",");
+            var la = spl[0];
+            var lo = spl[1]
+            var zoom = 12;
+        }
+        else{
+            var la = 0;
+            var lo = 0;
+            var zoom = 2;
+        }
+        var mymap = L.map('mapid').setView([la, lo], zoom);
+        L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        id: 'mapbox.streets',
+        accessToken: 'your.mapbox.access.token'}).addTo(mymap);      
+
+
+          var geocoder = L.Control.Geocoder.photon();
+          if (URLSearchParams && location.search) {
+            // parse /?geocoder=nominatim from URL
+            var params = new URLSearchParams(location.search);
+            var geocoderString = params.get('geocoder');
+            if (geocoderString && L.Control.Geocoder[geocoderString]) {
+              console.log('Using geocoder', geocoderString);
+              geocoder = L.Control.Geocoder[geocoderString]();
+            } else if (geocoderString) {
+              console.warn('Unsupported geocoder', geocoderString);
+            }
+          }
+          var control = L.Control.geocoder({
+            geocoder: geocoder
+          }).addTo(mymap);
+
+        if (str){
+        var data = str.split(",");
+        var coordinates = chunkArray(data, 4);
+        for (var i = 0; i < coordinates.length; i++) {
+            var po = "Nodetype:"+coordinates[i][3].toString()+"\nlat & lon:["+coordinates[i][0]+","+coordinates[i][1]+"] \n Demand:"+coordinates[i][2];
+            var marker = new L.marker([coordinates[i][0],coordinates[i][1]]).addTo(mymap);
+              marker.bindPopup(po).openPopup(); 
+        }
+    }
+
+              
+        mymap.on('click', 
+            function(e){
+                var coord = e.latlng; // no need for toString()
+                var lat = coord.lat;
+                var lng = coord.lng;
+                var newMarker = L.marker(e.latlng, {draggable:'true'}).addTo(mymap)
+                .bindPopup('<form method="POST" >'+
+                    '<div class="form-group">' +
+                    '<label for="NodeType">Node Type: </label> ' +
+                    '<input name="NodeType" id="yesCheck" type="radio" value="customer">Customer&nbsp;&nbsp;' +
+                    '<input name="NodeType" id="noCheck" type="radio" value="depot">Depot<br>' +
+                    '<label for="Latitude">Latitude: </label> &nbsp;&nbsp;&nbsp;<input type="text" id="Latitude" size="10" name="Latitude" value='+Math.round(lat*10000)/10000+' readonly></br>' +
+                    '<label for="Longitude">Longitude: </label> <input type="text" id="Longitude" name="Longitude" size="10" value='+Math.round(lng*10000)/10000+' readonly></br>' +
+                    '<label for="Demand">Demand: </label> &nbsp;&nbsp;&nbsp;<input type="text" id="Demand" name="Demand" size="10" value="0"></br>' + 
+                    '<input  type="hidden" id="formdata" name="formdata" value='+str+'>'+
+                    '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<button id="submit" class="btn btn-default addButton">ADD</button></div></form>')
+                    .openPopup();
+                });  
+
+    </script>
+    <br/>
+<!-- </form> -->
+<form action = "/result" method = "POST"  class="form-inline">
+        <div class="form-group">
+       &nbsp;&nbsp; <label for="iname">Instance Name: </label>
+        <input type="text" id="iname" class="form-control" name="Instance name"/>
+    </div>
+    <div class="form-group">
+        &nbsp;&nbsp;<label for="vcap">Vehicle Capacity: </label>
+        <input type="text" id="vcap" class="form-control" name="Vehicle capacity"/>
+    </div> <br/><br/>
+    &nbsp;&nbsp;&nbsp;&nbsp; <button type="submit" class="btn btn-default">Solve</button>
+    </form>
+ 
+</body>
+</html>
